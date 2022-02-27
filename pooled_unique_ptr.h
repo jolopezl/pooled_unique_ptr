@@ -20,10 +20,9 @@
 template <typename T>
 class pooled_unique_ptr
 {
-private:
-    T *_ptr;
+   private:
+    T* _ptr;
     size_t _ptr_pool_index; // position in the pool
-
     static inline bool _initialized = false;
     static inline size_t _pool_pos;                             // pointer to the next free position in the pool
     static inline char _pool_buffer[sizeof(T) * MAX_POOL_SIZE]; // TODO: check the type of the buffer
@@ -31,15 +30,14 @@ private:
     static inline std::unordered_set<size_t> _pool_open_slots; // keep track of O(1) average access/insert/delete
     size_t find_open_slot();
 
-public:
+   public:
     pooled_unique_ptr() {}
 
     template <typename... Args>
-    pooled_unique_ptr(Args &&...args)
+    pooled_unique_ptr(Args&&... args)
     {
         // _ptr = new T(std::forward<Args>(args)...);
-        if (!_initialized)
-        {
+        if (!_initialized) {
             initialize_pool();
         }
 
@@ -55,23 +53,21 @@ public:
     ~pooled_unique_ptr()
     {
         printf("current mmap (before deallocation): %s \t deallocating slot %ld \n", _pool_slots.to_string().c_str(), _ptr_pool_index);
-        if (_ptr != nullptr)
-        {
+        if (_ptr != nullptr) {
             _pool_slots.set(_ptr_pool_index, false);
             _pool_open_slots.insert(_ptr_pool_index);
         }
         printf("current mmap (after deallocation): %s\n", _pool_slots.to_string().c_str());
-        for (const auto &slot : _pool_open_slots)
-        {
+        for (const auto& slot : _pool_open_slots) {
             printf("slot %zu is open\n", slot);
         }
     }
 
     // copy constructor - disabled
-    pooled_unique_ptr(const pooled_unique_ptr &) = delete;
+    pooled_unique_ptr(const pooled_unique_ptr&) = delete;
 
     // move constructor
-    pooled_unique_ptr(pooled_unique_ptr &&other)
+    pooled_unique_ptr(pooled_unique_ptr&& other)
     {
         _ptr = std::move(other._ptr);
         _ptr_pool_index = other._ptr_pool_index;
@@ -79,10 +75,10 @@ public:
     };
 
     // copy assignment - disabled
-    pooled_unique_ptr &operator=(const pooled_unique_ptr &) = delete;
+    pooled_unique_ptr& operator=(const pooled_unique_ptr&) = delete;
 
     // move assignment
-    pooled_unique_ptr &operator=(pooled_unique_ptr &&other)
+    pooled_unique_ptr& operator=(pooled_unique_ptr&& other)
     {
         _ptr = std::move(other._ptr);
         _ptr_pool_index = other._ptr_pool_index;
@@ -91,13 +87,13 @@ public:
     }
 
     // overloaded arrow operator
-    T *operator->()
+    T* operator->()
     {
         return _ptr;
     }
 
     // overloaded dereference operator
-    T &operator*()
+    T& operator*()
     {
         return *_ptr;
     }
@@ -121,19 +117,13 @@ size_t pooled_unique_ptr<T>::find_open_slot()
      * @return The index of the open slot.
      */
     size_t pos = _pool_pos;
-    if (_pool_pos < MAX_POOL_SIZE)
-    {
+    if (_pool_pos < MAX_POOL_SIZE) {
         pos = this->_pool_pos;
         ++this->_pool_pos;
-    }
-    else
-    {
-        if (this->_pool_open_slots.empty())
-        {
+    } else {
+        if (this->_pool_open_slots.empty()) {
             throw std::runtime_error("ERROR: Memory pool is full");
-        }
-        else
-        {
+        } else {
             pos = *(this->_pool_open_slots.begin());
             this->_pool_open_slots.erase(pos);
         }
