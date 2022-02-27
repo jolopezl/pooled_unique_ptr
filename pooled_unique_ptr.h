@@ -15,6 +15,8 @@
 #include <stdexcept>
 #include <unordered_set>
 
+// maximum number of objects in the pool (small for testing and debugging)
+// used 4 for testing and debugging
 #define MAX_POOL_SIZE 4
 
 template <typename T>
@@ -26,8 +28,7 @@ class pooled_unique_ptr
     static inline bool _initialized = false;
     static inline size_t _pool_pos;                             // pointer to the next free position in the pool
     static inline char _pool_buffer[sizeof(T) * MAX_POOL_SIZE]; // TODO: check the type of the buffer
-    static inline std::bitset<MAX_POOL_SIZE> _pool_slots;
-    static inline std::unordered_set<size_t> _pool_open_slots; // keep track of O(1) average access/insert/delete
+    static inline std::unordered_set<size_t> _pool_open_slots;  // keep track of O(1) average access/insert/delete
     size_t find_open_slot();
 
    public:
@@ -40,26 +41,15 @@ class pooled_unique_ptr
         if (!_initialized) {
             initialize_pool();
         }
-
-        printf("current mmap (before allocation): %s\n", _pool_slots.to_string().c_str());
         auto pos = find_open_slot();
-        printf("allocated slot: %zu\n", pos);
         _ptr = new (_pool_buffer + sizeof(T) * pos) T(std::forward<Args>(args)...);
         _ptr_pool_index = pos;
-        _pool_slots.set(pos);
-        printf("current mmap (after allocation): %s\n", _pool_slots.to_string().c_str());
     }
 
     ~pooled_unique_ptr()
     {
-        printf("current mmap (before deallocation): %s \t deallocating slot %ld \n", _pool_slots.to_string().c_str(), _ptr_pool_index);
         if (_ptr != nullptr) {
-            _pool_slots.set(_ptr_pool_index, false);
             _pool_open_slots.insert(_ptr_pool_index);
-        }
-        printf("current mmap (after deallocation): %s\n", _pool_slots.to_string().c_str());
-        for (const auto& slot : _pool_open_slots) {
-            printf("slot %zu is open\n", slot);
         }
     }
 
@@ -98,10 +88,14 @@ class pooled_unique_ptr
         return *_ptr;
     }
 
+    T* data()
+    {
+        return _ptr;
+    }
+
     static void initialize_pool()
     {
         _pool_pos = 0;
-        _pool_slots.reset();
         _initialized = true;
     }
 };
