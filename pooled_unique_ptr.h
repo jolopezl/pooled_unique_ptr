@@ -122,7 +122,7 @@ size_t pooled_unique_ptr<T>::find_open_slot()
         ++this->_pool_pos;
     } else {
         if (this->_pool_open_slots.empty()) {
-            throw std::runtime_error("ERROR: Memory pool is full");
+            throw std::runtime_error("memory pool is full, cannot allocate more objects");
         } else {
             pos = *(this->_pool_open_slots.begin());
             this->_pool_open_slots.erase(pos);

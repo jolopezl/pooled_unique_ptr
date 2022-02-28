@@ -62,9 +62,7 @@ void test_pool_move(bool dangeruous = false)
     p4->greet();                                            // greets with p3 data
     assert(p4->item == 3);                                  // should be 3, from p3 data
 
-    if (dangeruous) {
-        // the following compiles, but will produce a runtime error
-        // test with ASAN enabled for more details
+    if (dangeruous) { // could produce a runtime error
         p1->greet();
         p3->greet();
     }
@@ -79,7 +77,7 @@ void test_pool_copy()
     std::cout << "*** test_pool_copy ***" << std::endl;
     pooled_unique_ptr<MyObj> p1(1, "hello");
     pooled_unique_ptr<MyObj> p2(2, "world");
-    // p2 = p1; // should not compile
+//     p2 = p1; // should not compile
 }
 
 int main()
@@ -90,12 +88,10 @@ int main()
     }
 
     test_pool_alloc_dealloc();
-
     test_pool_move();
-
-    // test_pool_copy(); // compile time error
-
-    // test_pool_move(true); // runtime error
+    test_pool_move(true); // runtime error
+    
+//     test_pool_copy(); // compile time error
 
     return 0;
 }
