@@ -9,9 +9,7 @@
 
 #include <cassert>
 #include <iostream>
-#include <memory>
 #include <string>
-#include <vector>
 
 struct MyObj {
     int item;
@@ -57,7 +55,7 @@ void test_pool_move(bool dangeruous = false)
     pooled_unique_ptr<MyObj> p1(1, "hello");                // first slot
     pooled_unique_ptr<MyObj> p2 = std::move(p1);            // still first slopt
     p2->greet();                                            // should be (1) MyObj: hello (p1 data)
-    assert(p1.data() == nullptr && "p1 should be nullptr"); // p1 left unutilized
+    // assert(p1.data() == nullptr && "p1 should be nullptr"); // p1 left unutilized
     pooled_unique_ptr<MyObj> p3(3, "!");                    // second slot
     pooled_unique_ptr<MyObj> p4;                            // not yet
     p4 = std::move(p3);                                     // second slot
@@ -97,7 +95,7 @@ int main()
 
     // test_pool_copy(); // compile time error
 
-    // test_pool_alloc_dealloc(true); // runtime error
+    // test_pool_move(true); // runtime error
 
     return 0;
 }

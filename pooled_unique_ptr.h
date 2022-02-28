@@ -26,9 +26,10 @@ class pooled_unique_ptr
     T* _ptr;
     size_t _ptr_pool_index; // position in the pool
     static inline bool _initialized = false;
-    static inline size_t _pool_pos;                             // pointer to the next free position in the pool
-    static inline char _pool_buffer[sizeof(T) * MAX_POOL_SIZE]; // TODO: check the type of the buffer
-    static inline std::unordered_set<size_t> _pool_open_slots;  // keep track of O(1) average access/insert/delete
+    static inline size_t _pool_pos; // pointer to the next free position in the pool
+    // static inline char _pool_buffer[sizeof(T) * MAX_POOL_SIZE]; // TODO: replace with something more C++ friendly (done!)
+    static inline std::aligned_storage_t<sizeof(T), alignof(T)> _pool_buffer[MAX_POOL_SIZE];
+    static inline std::unordered_set<size_t> _pool_open_slots; // keep track of O(1) average access/insert/delete
     size_t find_open_slot();
 
    public:
@@ -42,7 +43,8 @@ class pooled_unique_ptr
             initialize_pool();
         }
         auto pos = find_open_slot();
-        _ptr = new (_pool_buffer + sizeof(T) * pos) T(std::forward<Args>(args)...);
+        // _ptr = new (_pool_buffer + sizeof(T) * pos) T(std::forward<Args>(args)...);
+        _ptr = new (&_pool_buffer[pos]) T(std::forward<Args>(args)...);
         _ptr_pool_index = pos;
     }
 
@@ -51,6 +53,8 @@ class pooled_unique_ptr
         if (_ptr != nullptr) {
             _pool_open_slots.insert(_ptr_pool_index);
         }
+        // the following made the compilation much slower
+        std::destroy_at(std::launder(reinterpret_cast<T*>(_ptr)));
     }
 
     // copy constructor - disabled
@@ -61,7 +65,8 @@ class pooled_unique_ptr
     {
         _ptr = std::move(other._ptr);
         _ptr_pool_index = other._ptr_pool_index;
-        other._ptr = nullptr;
+        // other._ptr = nullptr;
+        std::destroy_at(std::launder(reinterpret_cast<T*>(other._ptr)));
     };
 
     // copy assignment - disabled
@@ -72,7 +77,8 @@ class pooled_unique_ptr
     {
         _ptr = std::move(other._ptr);
         _ptr_pool_index = other._ptr_pool_index;
-        other._ptr = nullptr;
+        // other._ptr = nullptr;
+        std::destroy_at(std::launder(reinterpret_cast<T*>(other._ptr)));
         return *this;
     }
 
